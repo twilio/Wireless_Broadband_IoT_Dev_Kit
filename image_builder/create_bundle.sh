@@ -98,7 +98,7 @@ while getopts 'hn:m:i:a:b:r:p:' opt; do
 done
 
 if [ ! -d tmp ]; then
-  mkdir tmp
+	mkdir tmp
 fi
 
 if [ -z "$mount_point_boot" ]; then
@@ -128,43 +128,43 @@ fi
 
 
 if [ -z "$azure_repo" ]; then
-  if [ ! -d tmp/azure-sdk ]; then
+	if [ ! -d tmp/azure-sdk ]; then
 	echo "Cloning Azure IoT SDK... "
-  	git clone "$AZURE_REPO" --branch ${AZURE_BRANCH} --recursive tmp/azure-sdk
-  else
+		git clone "$AZURE_REPO" --branch ${AZURE_BRANCH} --recursive tmp/azure-sdk
+	else
 	echo "Using existing Azure IoT SDK."
-  fi
-  azure_repo=$(pwd)/tmp/azure-sdk
+	fi
+	azure_repo=$(pwd)/tmp/azure-sdk
 fi
 
 if [ -z "$tob_repo" ]; then
-  if [ ! -d tmp/tob-sdk ]; then
-	  echo "Cloning Trust Onboard SDK... "
-	  git clone "$TOB_REPO" --branch ${TOB_BRANCH}  --recursive tmp/tob-sdk
-  else
-	  echo "Using existing Trust Onboard SDK... "
-  fi
-  tob_repo=$(pwd)/tmp/tob-sdk
+	if [ ! -d tmp/tob-sdk ]; then
+		echo "Cloning Trust Onboard SDK... "
+		git clone "$TOB_REPO" --branch ${TOB_BRANCH} --recursive tmp/tob-sdk
+	else
+		echo "Using existing Trust Onboard SDK... "
+	fi
+	tob_repo=$(pwd)/tmp/tob-sdk
 fi
 
 if [ -z "$rpi_tools_repo" ]; then
-  if [ ! -d tmp/rpi-tools ]; then
-	  echo "Cloning Raspberry Pi tools... "
-	  git clone "$RPI_TOOLS_REPO" --branch ${RPI_TOOLS_BRANCH}  --recursive tmp/rpi-tools
-  else
-	  echo "Using existing Raspberry Pi tools... "
-  fi
-  rpi_tools_repo=$(pwd)/tmp/rpi-tools
+	if [ ! -d tmp/rpi-tools ]; then
+		echo "Cloning Raspberry Pi tools... "
+		git clone "$RPI_TOOLS_REPO" --branch ${RPI_TOOLS_BRANCH} --recursive tmp/rpi-tools
+	else
+		echo "Using existing Raspberry Pi tools... "
+	fi
+	rpi_tools_repo=$(pwd)/tmp/rpi-tools
 fi
 
 if [ -z "$wireless_ppp_repo" ]; then
-  if [ ! -d tmp/wireless-ppp ]; then
-  	echo "Cloning Wireless PPP scripts... "
-  	git clone "$WIRELESS_PPP_REPO" --branch ${WIRELESS_PPP_BRANCH}  --recursive tmp/wireless-ppp
-  else
-  	echo "Using existing Wireless PPP scripts... "
-  fi
-  wireless_ppp_repo=$(pwd)/tmp/wireless-ppp
+	if [ ! -d tmp/wireless-ppp ]; then
+		echo "Cloning Wireless PPP scripts... "
+		git clone "$WIRELESS_PPP_REPO" --branch ${WIRELESS_PPP_BRANCH} --recursive tmp/wireless-ppp
+	else
+		echo "Using existing Wireless PPP scripts... "
+	fi
+	wireless_ppp_repo=$(pwd)/tmp/wireless-ppp
 fi
 
 mount_sysroot ${mount_point_boot} ${mount_point_root} ${raspbian_image} || fail "couldn't mount sysroot"
@@ -173,13 +173,13 @@ export RPI_ROOT=${mount_point_root}
 trap mount_cleanup INT TERM EXIT
 
 if [ -z "${RPI_BOOT}" ]; then
-  echo "Error determining RPI_BOOT '${RPI_BOOT}' - aborting."
-  exit 1
+	echo "Error determining RPI_BOOT '${RPI_BOOT}' - aborting."
+	exit 1
 fi
 
 if [ -z "${RPI_ROOT}" ]; then
-  echo "Error determining RPI_ROOT '${RPI_ROOT}' - aborting."
-  exit 1
+	echo "Error determining RPI_ROOT '${RPI_ROOT}' - aborting."
+	exit 1
 fi
 
 # Generate setup shell script
