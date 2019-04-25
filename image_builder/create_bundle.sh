@@ -277,6 +277,21 @@ sudo rm -rf ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo mv ${tob_tempdir} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 
+echo "Installing grove.py library"
+sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
+cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+apt-get install -y python-pip python3-pip
+cd home/pi
+git clone https://github.com/Seeed-Studio/grove.py.git
+cd grove.py
+mv ../install-alt.sh .
+sudo ./install-alt.sh
+rm install-alt.sh
+chown -R pi:pi .
+_DONE_
+sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to generate setup script"
+
 echo "Enabling services"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
 systemctl enable seeed_lte_hat
