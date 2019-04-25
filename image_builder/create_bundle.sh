@@ -49,6 +49,44 @@ mount_sysroot () {
  		fail "Trouble locating mountpoint_root - aborting"
  	fi
 
+	TARGET_SIZE="3GB"
+
+	# add a gb to the image
+	sudo truncate -s ${TARGET_SIZE} "${image}" || fail "Unable to expand image"
+
+	loop_device=$(sudo losetup --show -f "${image}")
+	export loop_device
+
+	if [ -z "${loop_device}" ]; then
+ 		fail "Trouble locating loop_device - aborting"
+ 	fi
+	export partition_start=$(sudo parted --script ${loop_device} \
+		unit s \
+		print | grep "^ 2" | awk '{print $2}' | sed -e's/s//g')
+	if [ -z "${partition_start}" ]; then
+		fail "Trouble determining partition start"
+	fi
+	if (( !(partition_start > 0 && partition_start < 100000) )); then
+		fail "Invalid looking partition start"
+	fi
+	# expand image as needed
+	(
+	echo d # Delete existing paritition
+	echo 2 # Partition 2
+	echo n # Add a new partition
+	echo p # Primary partition
+	echo 2 # Partition number
+	echo ${partition_start} # Start of partition 2
+	echo   # Last sector (Accept default: varies)
+	echo w # Write changes
+	echo q # Quit
+	) | sudo fdisk ${loop_device}
+
+	sudo partprobe ${loop_device} &&
+	sudo e2fsck -f ${loop_device}p2 &&
+	sudo resize2fs ${loop_device}p2 &&
+	sudo e2fsck -f ${loop_device}p2 || fail "Unable to expand filesystem"
+
 	sudo partprobe ${loop_device} && \
 	sudo mount ${loop_device}p1 ${mountpoint_boot} && \
 	sudo mount ${loop_device}p2 ${mountpoint_root}
@@ -279,10 +317,38 @@ sudo rm -rf ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo mv ${tob_tempdir} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 
+echo "Building Azure IoT Python library"
+cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+cd home/pi
+sudo apt-get install -y libboost-dev
+apt-get autoremove -y
+apt-get clean
+git clone --recursive https://github.com/Azure/azure-iot-sdk-python.git
+cd azure-iot-sdk-python
+pushd c
+git checkout -b hsm_custom_data --track origin/hsm_custom_data
+git submodule update --recursive
+# temporary work-around for compilation error
+sed -i -e '/REGISTRATION_NAME/d' provisioning_client/samples/custom_hsm_example/custom_hsm_example.c
+sed -i -e '/SYMMETRIC_KEY/d' provisioning_client/samples/custom_hsm_example/custom_hsm_example.c
+# libssl-dev is not compatible, use libssl1.0-dev - https://github.com/Azure/azure-iot-sdk-c/issues/265
+sed -i -e 's/libssl-dev/libssl1.0-dev/g' build_all/linux/setup.sh
+popd
+cd build_all/linux
+./setup.sh
+./build.sh --provisioning --no_uploadtoblob
+cd ../../..
+chown -R pi:pi azure-iot-sdk-python
+_DONE_
+sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to generate setup script"
+
 echo "Installing grove.py library"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
 apt-get install -y python-pip python3-pip
+apt-get autoremove -y
+apt-get clean
 cd home/pi
 git clone https://github.com/Seeed-Studio/grove.py.git
 cd grove.py
