@@ -117,13 +117,15 @@ if [ -z "$raspbian_image" ]; then
 		wget -P tmp/ ${DEFAULT_RASPBIAN_URL} || fail "couldn't download Raspbian"
 	fi
 
-	unpacked_image_name=$(unzip -l "tmp/${DEFAULT_RASPBIAN_IMAGENAME}" -d "tmp" | sed -n 's/^\s*[^ \t]*\s*[^ \t]*\s[^ \t]*\s*\([^ \t]*\.img\).*$/\1/p')
+	unpacked_image_name=$(unzip -l "tmp/${DEFAULT_RASPBIAN_IMAGENAME}" | sed -n 's/^\s*[^ \t]*\s*[^ \t]*\s[^ \t]*\s*\([^ \t]*\.img\).*$/\1/p')
 
-	if [ ! -f ${unpacked_image_name} ]; then
-		echo "Extracting Raspbian image... "
-		unzip -u "tmp/${DEFAULT_RASPBIAN_IMAGENAME}" || fail "couldn't unzip Raspbian"
+	if [ -f tmp/${unpacked_image_name} ]; then
+		echo "Removing old Raspbian image... "
+		rm "tmp/${unpacked_image_name}"
 	fi
-	raspbian_image=$(pwd)/${unpacked_image_name}
+	echo "Extracting Raspbian image... "
+	unzip -u "tmp/${DEFAULT_RASPBIAN_IMAGENAME}" -d "tmp" || fail "couldn't unzip Raspbian"
+	raspbian_image=$(pwd)/tmp/${unpacked_image_name}
 fi
 
 
