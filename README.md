@@ -60,7 +60,7 @@ _We have included the required steps to [replicate the environment yourself](ima
 
 After downloading the SD card image, you can unpack the archive and use [Etcher](https://etcher.io/) (or the tool/method of your choice) to write the image out to the SD card.
 
-The default login is the same as Raspbian: `pi` and `things`.
+The default login is: `pi` with a password of `build19`.
 
 ## Connectivity
 

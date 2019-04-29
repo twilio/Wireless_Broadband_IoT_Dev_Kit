@@ -35,6 +35,7 @@ mount_cleanup () {
 
 	sudo umount ${RPI_BOOT}
 	sudo umount ${RPI_ROOT}
+	sudo zerofree ${loop_device}p2
 	sudo losetup -d ${loop_device}
 	rmdir ${RPI_BOOT}
 	rmdir ${RPI_ROOT}
@@ -119,11 +120,11 @@ while getopts 'hn:m:i:a:b:r:p:' opt; do
 			        -h Print this help.\
 				-n Set boot mount point. A temporary directory is used by default.\
 				-m Set root mount point. A temporary directory is used by default.\
-				-i Raspbian image to use. Raspbian Stretch Lite is downloaded to the current directory by default\
-				-a Path to Azure SDK repository. Cloned to the current directory by default.\
-				-b Path to Trust Onboard Breakout repository. Cloned to the current directory by default.
-				-r Path to Raspberry Pi Tools repository. Cloned to the current directory by default.
-				-p Path to Twilio Wireless PPP repository. Cloned to the current directory by default."
+				-i Raspbian image to use. Raspbian Stretch Lite is downloaded to a temporary directory by default\
+				-a Path to Azure SDK repository. Cloned to a temporary directory by default.\
+				-b Path to Trust Onboard Breakout repository. Cloned to a temporary directory by default.
+				-r Path to Raspberry Pi Tools repository. Cloned to a temporary directory by default.
+				-p Path to Twilio Wireless PPP repository. Cloned to a temporary directory by default."
 			;;
 		n)	mount_point_boot=${OPTARG} ;;
 		m)	mount_point_root=${OPTARG} ;;
@@ -230,7 +231,7 @@ sed -i 's/^# \(en_US.UTF-8 UTF-8\)/\1/g' etc/locale.gen
 sed -i 's/^\(en_GB.UTF-8\)/#\1/g' etc/locale.gen
 /usr/sbin/locale-gen
 
-echo "Setting default conference password"
+echo "Setting default image password"
 echo -e "build19\nbuild19" | passwd pi
 
 echo "Installing required packages"
@@ -244,7 +245,7 @@ apt-get clean
 rm -f etc/ssh/ssh_host_*
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
-sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
 
 export PATH=${PATH}:${rpi_tools_repo}/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin
 
@@ -317,31 +318,19 @@ sudo rm -rf ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo mv ${tob_tempdir} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 
-echo "Building Azure IoT Python library"
+echo "Installing Azure IoT Python library for samples"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
 cd home/pi
-sudo apt-get install -y libboost-dev
+sudo apt-get install -y libboost-dev libboost-python-dev
 apt-get autoremove -y
 apt-get clean
-git clone --recursive https://github.com/Azure/azure-iot-sdk-python.git
-cd azure-iot-sdk-python
-pushd c
-git checkout -b hsm_custom_data --track origin/hsm_custom_data
-git submodule update --recursive
-# temporary work-around for compilation error
-sed -i -e '/REGISTRATION_NAME/d' provisioning_client/samples/custom_hsm_example/custom_hsm_example.c
-sed -i -e '/SYMMETRIC_KEY/d' provisioning_client/samples/custom_hsm_example/custom_hsm_example.c
-# libssl-dev is not compatible, use libssl1.0-dev - https://github.com/Azure/azure-iot-sdk-c/issues/265
-sed -i -e 's/libssl-dev/libssl1.0-dev/g' build_all/linux/setup.sh
-popd
-cd build_all/linux
-./setup.sh
-./build.sh --provisioning --no_uploadtoblob
-cd ../../..
+git clone https://github.com/Azure/azure-iot-sdk-python.git
+pip install azure-iothub-device-client
+pip3 install azure-iothub-device-client
 chown -R pi:pi azure-iot-sdk-python
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
-sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
 
 echo "Installing grove.py library"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
@@ -358,7 +347,9 @@ rm install-alt.sh
 chown -R pi:pi .
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
-sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
+sudo cp bundle_files/home/pi/grove.py/grove/grove_I2C_High_Accuracy_tem_hum_SHT35_sensor.py ${RPI_ROOT}/home/pi/grove.py/grove/
+sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/grove.py/grove/grove_I2C_High_Accuracy_tem_hum_SHT35_sensor.py
 
 echo "Enabling services"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
@@ -369,6 +360,9 @@ systemctl enable twilio_ppp
 systemctl disable exim4
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
-sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
+
+echo "Configuring image metadata"
+sudo cp bundle_files_boot/twilio.json ${RPI_BOOT}/
 
 echo "Successfully created image at ${raspbian_image}"
