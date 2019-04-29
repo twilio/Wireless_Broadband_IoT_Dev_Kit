@@ -280,8 +280,8 @@ rm -rf ${ppp_tempdir}
 popd
 
 echo "Setting up smstools"
-sudo cp ${tob_repo}/service-scripts/bundle_files/etc/smsd.conf ${RPI_ROOT}/etc/
-sudo cp ${tob_repo}/service-scripts/bundle_files/home/pi/sms_received.sh ${RPI_ROOT}/home/pi/
+sudo cp bundle_files/etc/smsd.conf ${RPI_ROOT}/etc/
+sudo cp bundle_files/home/pi/sms_received.sh ${RPI_ROOT}/home/pi/
 sudo touch ${RPI_ROOT}/home/pi/azure_id_scope.txt
 pi_uname=$(cat ${RPI_ROOT}/etc/passwd | grep '^pi:' | cut -d ':' -f 3)
 dialout_grp=$(cat ${RPI_ROOT}/etc/group | grep '^dialout:' | cut -d ':' -f 3)
@@ -290,7 +290,7 @@ sudo chmod ug+w ${RPI_ROOT}/home/pi/azure_id_scope.txt
 
 echo "Configuring default keyboard layout"
 # dpkg-reconfigure keyboard-layout
-sudo cp ${tob_repo}/service-scripts/bundle_files/etc/default/keyboard ${RPI_ROOT}/etc/default/
+sudo cp bundle_files/etc/default/keyboard ${RPI_ROOT}/etc/default/
 
 echo "Disabling serial console to avoid conflicts with LTE HAT"
 sudo sed -i 's/ console=serial0,115200//g' ${RPI_BOOT}/cmdline.txt
@@ -302,11 +302,11 @@ sudo sed -i 's/^#\(dtparam=i2c_arm=on\)/\1/g' ${RPI_BOOT}/config.txt
 
 echo "Setting up fallback static IP address for conference"
 sudo rm -f ${RPI_ROOT}/etc/systemd/system/dhcpcd.service.d/wait.conf
-sudo cp ${tob_repo}/service-scripts/bundle_files/etc/dhcpcd.conf ${RPI_ROOT}/etc/
+sudo cp bundle_files/etc/dhcpcd.conf ${RPI_ROOT}/etc/
 
 echo "Setting up udhcpd"
 sudo sed -i 's/ENABLED="no"/ENABLED="yes"/;s/DHCPD_OPTS="/DHCPD_OPTS="-I 192.168.253.100 /' ${RPI_ROOT}/etc/default/udhcpd
-sudo cp ${tob_repo}/service-scripts/bundle_files/etc/udhcpd.conf ${RPI_ROOT}/etc/
+sudo cp bundle_files/etc/udhcpd.conf ${RPI_ROOT}/etc/
 
 echo "Installing initial Breakout_Trust_Onboard_SDK for examples and documentation"
 tob_tempdir=$(mktemp -d)
@@ -318,10 +318,23 @@ sudo rm -rf ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo mv ${tob_tempdir} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 
+echo "Installing Breakout_Trust_Onboard_SDK Azure IoT Python helper"
+cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+cd home/pi/Breakout_Trust_Onboard_SDK/cloud-support/azure-iot/python_tob_helper/
+mkdir cmake
+cd cmake
+cmake ..
+make
+make install
+chown -R pi:pi .
+_DONE_
+sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
+
 echo "Installing Azure IoT Python library for samples"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
 cd home/pi
-sudo apt-get install -y libboost-dev libboost-python-dev
+apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
 apt-get autoremove -y
 apt-get clean
 git clone https://github.com/Azure/azure-iot-sdk-python.git
@@ -342,14 +355,15 @@ cd home/pi
 git clone https://github.com/Seeed-Studio/grove.py.git
 cd grove.py
 mv ../install-alt.sh .
-sudo ./install-alt.sh
+./install-alt.sh
 rm install-alt.sh
 chown -R pi:pi .
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
 sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
 sudo cp bundle_files/home/pi/grove.py/grove/grove_I2C_High_Accuracy_tem_hum_SHT35_sensor.py ${RPI_ROOT}/home/pi/grove.py/grove/
-sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/grove.py/grove/grove_I2C_High_Accuracy_tem_hum_SHT35_sensor.py
+sudo cp bundle_files/home/pi/grove.py/grove/grove_oled_display_128x128.py ${RPI_ROOT}/home/pi/grove.py/grove/
+sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/grove.py/
 
 echo "Enabling services"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
