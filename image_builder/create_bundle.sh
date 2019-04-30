@@ -344,7 +344,7 @@ chown -R pi:pi azure-iot-sdk-python
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
 sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
-cp bundle_files/home/pi/azure-iot-sdk-python/device/samples/twilio_trust_onboard_azure.py ${RPI_ROOT}/home/pi/azure-iot-sdk-python/device/samples/
+sudo cp bundle_files/home/pi/azure-iot-sdk-python/device/samples/twilio_trust_onboard_azure.py ${RPI_ROOT}/home/pi/azure-iot-sdk-python/device/samples/
 
 echo "Installing Grove I2C module libraries (grove.py, luma.oled)"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
