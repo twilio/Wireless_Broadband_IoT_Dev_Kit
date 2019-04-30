@@ -19,7 +19,7 @@ TOB_BRANCH=initial-implementation
 WIRELESS_PPP_REPO=https://github.com/twilio/wireless-ppp-scripts.git
 WIRELESS_PPP_BRANCH=master
 
-REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools"
+REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim"
 
 mount_cleanup () {
  	 # Tear-down qemu chroot env
@@ -338,19 +338,21 @@ apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
 apt-get autoremove -y
 apt-get clean
 git clone https://github.com/Azure/azure-iot-sdk-python.git
-pip install azure-iothub-device-client
-pip3 install azure-iothub-device-client
+pip install azure-iothub-device-client pyyaml
+pip3 install azure-iothub-device-client pyyaml
 chown -R pi:pi azure-iot-sdk-python
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
 sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
+cp bundle_files/home/pi/azure-iot-sdk-python/device/samples/twilio_trust_onboard_azure.py ${RPI_ROOT}/home/pi/azure-iot-sdk-python/device/samples/
 
-echo "Installing grove.py library"
+echo "Installing Grove I2C module libraries (grove.py, luma.oled)"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
-apt-get install -y python-pip python3-pip
+apt-get install -y python-pip python3-pip libfreetype6-dev libjpeg-dev
 apt-get autoremove -y
 apt-get clean
+pip install --upgrade luma.oled
 cd home/pi
 git clone https://github.com/Seeed-Studio/grove.py.git
 cd grove.py
