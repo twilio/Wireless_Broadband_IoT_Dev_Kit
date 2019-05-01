@@ -317,6 +317,7 @@ pi_grp=$(cat ${RPI_ROOT}/etc/passwd | grep '^pi:' | cut -d ':' -f 4)
 sudo rm -rf ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo mv ${tob_tempdir} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
+sudo chmod 755 ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 
 echo "Installing Breakout_Trust_Onboard_SDK Azure IoT Python helper"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
@@ -337,7 +338,7 @@ cd home/pi
 apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
 apt-get autoremove -y
 apt-get clean
-git clone https://github.com/Azure/azure-iot-sdk-python.git
+git clone --depth 1 https://github.com/Azure/azure-iot-sdk-python.git
 pip install azure-iothub-device-client pyyaml
 pip3 install azure-iothub-device-client pyyaml
 chown -R pi:pi azure-iot-sdk-python
@@ -345,6 +346,7 @@ _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
 sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
 sudo cp bundle_files/home/pi/azure-iot-sdk-python/device/samples/twilio_trust_onboard_azure.py ${RPI_ROOT}/home/pi/azure-iot-sdk-python/device/samples/
+sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/azure-iot-sdk-python
 
 echo "Installing Grove I2C module libraries (grove.py, luma.oled)"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/

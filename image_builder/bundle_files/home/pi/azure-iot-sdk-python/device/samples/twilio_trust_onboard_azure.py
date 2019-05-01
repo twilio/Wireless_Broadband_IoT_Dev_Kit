@@ -159,7 +159,6 @@ def receive_message_callback(message, counter):
     if 'units' in key_value_pair and \
             key_value_pair['units'] in ('fahrenheit', 'celsius'):
         UNITS = key_value_pair['units']
-        print(UNITS)
 
     counter += 1
     RECEIVE_CALLBACKS += 1
