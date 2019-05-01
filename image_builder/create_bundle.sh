@@ -13,7 +13,7 @@ AZURE_BRANCH=hsm_custom_data
 RPI_TOOLS_REPO=https://github.com/raspberrypi/tools.git
 RPI_TOOLS_BRANCH=master
 
-TOB_REPO=git@github.com:twilio/Breakout_Trust_Onboard_SDK.git
+TOB_REPO=https://github.com/twilio/Breakout_Trust_Onboard_SDK.git
 TOB_BRANCH=master
 
 WIRELESS_PPP_REPO=https://github.com/twilio/wireless-ppp-scripts.git
