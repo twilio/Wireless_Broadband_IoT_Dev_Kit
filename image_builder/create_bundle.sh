@@ -50,43 +50,12 @@ mount_sysroot () {
  		fail "Trouble locating mountpoint_root - aborting"
  	fi
 
-	TARGET_SIZE="3GB"
-
-	# add a gb to the image
-	sudo truncate -s ${TARGET_SIZE} "${image}" || fail "Unable to expand image"
-
 	loop_device=$(sudo losetup --show -f "${image}")
 	export loop_device
 
 	if [ -z "${loop_device}" ]; then
  		fail "Trouble locating loop_device - aborting"
  	fi
-	export partition_start=$(sudo parted --script ${loop_device} \
-		unit s \
-		print | grep "^ 2" | awk '{print $2}' | sed -e's/s//g')
-	if [ -z "${partition_start}" ]; then
-		fail "Trouble determining partition start"
-	fi
-	if (( !(partition_start > 0 && partition_start < 100000) )); then
-		fail "Invalid looking partition start"
-	fi
-	# expand image as needed
-	(
-	echo d # Delete existing paritition
-	echo 2 # Partition 2
-	echo n # Add a new partition
-	echo p # Primary partition
-	echo 2 # Partition number
-	echo ${partition_start} # Start of partition 2
-	echo   # Last sector (Accept default: varies)
-	echo w # Write changes
-	echo q # Quit
-	) | sudo fdisk ${loop_device}
-
-	sudo partprobe ${loop_device} &&
-	sudo e2fsck -f ${loop_device}p2 &&
-	sudo resize2fs ${loop_device}p2 &&
-	sudo e2fsck -f ${loop_device}p2 || fail "Unable to expand filesystem"
 
 	sudo partprobe ${loop_device} && \
 	sudo mount ${loop_device}p1 ${mountpoint_boot} && \
