@@ -303,23 +303,21 @@ sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup scr
 
 echo "Installing Azure IoT Python library for samples"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+export HOME=/home/pi
 cd home/pi
 apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
 apt-get autoremove -y
 apt-get clean
-git clone --depth 1 https://github.com/Azure/azure-iot-sdk-python.git
 pip install azure-iothub-device-client pyyaml
 pip3 install azure-iothub-device-client pyyaml
-chown -R pi:pi azure-iot-sdk-python
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
 sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
-sudo cp bundle_files/home/pi/azure-iot-sdk-python/device/samples/twilio_trust_onboard_azure.py ${RPI_ROOT}/home/pi/azure-iot-sdk-python/device/samples/
-sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/azure-iot-sdk-python
 
 echo "Installing Grove I2C module libraries (grove.py, luma.oled)"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+export HOME=/home/pi
 apt-get install -y python-pip python3-pip libfreetype6-dev libjpeg-dev
 apt-get autoremove -y
 apt-get clean
