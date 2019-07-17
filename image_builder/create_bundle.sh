@@ -7,8 +7,8 @@ sudo apt-get install qemu-user-static
 DEFAULT_RASPBIAN_URL=https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-04-09/2019-04-08-raspbian-stretch-lite.zip
 DEFAULT_RASPBIAN_IMAGENAME=2019-04-08-raspbian-stretch-lite.zip
 
-AZURE_REPO=https://github.com/Azure/azure-iot-sdk-c.git
-AZURE_BRANCH=hsm_custom_data
+AZURE_REPO=https://github.com/twilio/azure-iot-sdk-c.git
+AZURE_BRANCH=cryptodev
 
 RPI_TOOLS_REPO=https://github.com/raspberrypi/tools.git
 RPI_TOOLS_BRANCH=master
@@ -19,7 +19,7 @@ TOB_BRANCH=master
 WIRELESS_PPP_REPO=https://github.com/twilio/wireless-ppp-scripts.git
 WIRELESS_PPP_BRANCH=master
 
-REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim"
+REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree"
 
 mount_cleanup () {
  	 # Tear-down qemu chroot env
@@ -194,6 +194,7 @@ fi
 
 # Generate setup shell script
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+set -e
 echo "Configuring default locale"
 # dpkg-reconfigure locales
 sed -i 's/^# \(en_US.UTF-8 UTF-8\)/\1/g' etc/locale.gen
@@ -203,12 +204,18 @@ sed -i 's/^\(en_GB.UTF-8\)/#\1/g' etc/locale.gen
 echo "Setting default image password"
 echo -e "build19\nbuild19" | passwd pi
 
-echo "Installing required packages"
+echo "Updating system..."
 apt-get update
 apt-get upgrade -y
+echo "Installing required packages..."
 apt-get install -y ${REQUIRED_PACKAGES}
 apt-get autoremove -y
 apt-get clean
+echo "Done with pacakges"
+
+# Work-around libdl symlink issue
+rm /usr/lib/arm-linux-gnueabihf/libdl.so
+ln -s ../../../lib/arm-linux-gnueabihf/libdl.so.2 /usr/lib/arm-linux-gnueabihf/libdl.so
 
 # Upgrading ssh can lead to host key generation, we don't want this - clean them up if they are created
 rm -f etc/ssh/ssh_host_*
@@ -220,7 +227,7 @@ export PATH=${PATH}:${rpi_tools_repo}/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf
 
 echo "Building Azure SDK"
 pushd ${azure_repo}/build_all/linux
-./build.sh --toolchain-file ${tob_repo}/device-support/Seeed-LTE_Cat_1_Pi_HAT/toolchain.cmake --provisioning --no_uploadtoblob --install-path-prefix ${RPI_ROOT}/usr || fail "failed to build Azure SDK"
+./build.sh --toolchain-file ${tob_repo}/device-support/Seeed-LTE_Cat_1_Pi_HAT/toolchain.cmake --provisioning --no_uploadtoblob --install-path-prefix ${RPI_ROOT}/usr/local || fail "failed to build Azure SDK"
 cd ../../cmake/iotsdk_linux
 sudo make install || fail "failed to install Azure SDK"
 popd
@@ -290,6 +297,7 @@ sudo chmod 755 ${RPI_ROOT}/home/pi/Breakout_Trust_Onboard_SDK
 
 echo "Installing Breakout_Trust_Onboard_SDK Azure IoT Python helper"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+set -e
 cd home/pi/Breakout_Trust_Onboard_SDK/cloud-support/azure-iot/python_tob_helper/
 mkdir cmake
 cd cmake
@@ -303,6 +311,7 @@ sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup scr
 
 echo "Installing Azure IoT Python library for samples"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+set -e
 export HOME=/home/pi
 cd home/pi
 apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
@@ -317,6 +326,7 @@ sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup scr
 echo "Installing Grove I2C module libraries (grove.py, luma.oled)"
 sudo cp bundle_files/home/pi/grove.py/install-alt.sh ${RPI_ROOT}/home/pi/
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+set -e
 export HOME=/home/pi
 apt-get install -y python-pip python3-pip libfreetype6-dev libjpeg-dev
 apt-get autoremove -y
@@ -336,8 +346,12 @@ sudo cp bundle_files/home/pi/grove.py/grove/grove_I2C_High_Accuracy_tem_hum_SHT3
 sudo cp bundle_files/home/pi/grove.py/grove/grove_oled_display_128x128.py ${RPI_ROOT}/home/pi/grove.py/grove/
 sudo chown -R ${pi_uname}:${pi_grp} ${RPI_ROOT}/home/pi/grove.py/
 
-echo "Enabling services"
+echo "Enabling services and final cleanup"
 cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+# Undo work-around libdl symlink
+rm /usr/lib/arm-linux-gnueabihf/libdl.so
+ln -s /lib/arm-linux-gnueabihf/libdl.so.2 /usr/lib/arm-linux-gnueabihf/libdl.so
+
 systemctl enable seeed_lte_hat
 systemctl enable ssh
 systemctl enable udhcpd
