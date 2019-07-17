@@ -18,6 +18,13 @@ _seeed_source_list=/etc/apt/sources.list.d/seeed.list
 _seeed_apt_key="BB8F 40F3"
 _repo_package_url=https://github.com/Seeed-Studio/$_package_name/archive/master.zip
 
+BLACKLIST=/etc/modprobe.d/raspi-blacklist.conf
+CONFIG=/boot/config.txt
+if [ $_DEBUG -ne 0 ]; then
+	BLACKLIST=./raspi-blacklist.conf
+	CONFIG=./config.txt
+fi
+
 
 set_config_var() {
 	lua - "$1" "$2" "$3" <<EOF > "$3.bak"
@@ -40,6 +47,40 @@ end
 EOF
 
 	mv "$3.bak" "$3"
+}
+
+get_i2c() {
+	egrep -q "^(device_tree_param|dtparam)=([^,]*,)*i2c(_arm)?(=(on|true|yes|1))?(,.*)?$" $CONFIG
+	echo $?
+}
+
+do_i2c() {
+	DEFAULT=--defaultno
+	if [ $(get_i2c) -eq 0 ]; then
+		DEFAULT=
+	fi
+	RET=$1
+	if [ $RET -eq 0 ]; then
+		SETTING=on
+		STATUS=enabled
+	elif [ $RET -eq 1 ]; then
+		SETTING=off
+		STATUS=disabled
+	else
+		return $RET
+	fi
+
+	set_config_var dtparam=i2c_arm $SETTING $CONFIG &&
+	if ! [ -e $BLACKLIST ]; then
+		touch $BLACKLIST
+	fi
+	sed $BLACKLIST -i -e "s/^\(blacklist[[:space:]]*i2c[-_]bcm2708\)/#\1/"
+	sed /etc/modules -i -e "s/^#[[:space:]]*\(i2c[-_]dev\)/\1/"
+	if ! grep -q "^i2c[-_]dev" /etc/modules; then
+		printf "i2c-dev\n" >> /etc/modules
+	fi
+	dtparam i2c_arm=$SETTING
+	modprobe i2c-dev
 }
 
 function apt_install() {
@@ -69,6 +110,26 @@ function pip_install() {
 	}
 	return 1
 }
+
+#function platform_get() {
+#	local dts_model platform
+#
+#	dts_model=$(strings /proc/device-tree/model)
+#
+#	case "$dts_model" in
+#	TI\ AM335x*)
+#		platform=bbb;;
+#	Raspberry\ Pi*)
+#		platform=rpi;;
+#	Freescale\ i\.MX8MQ\ Phanbell)
+#		platform=coral;;
+#	jetson-nano)
+#		platform=jetson_nano;;
+#	*)
+#		platform="unknown";;
+#	esac
+#	echo $platform
+#}
 
 function platform_get() {
 	local dts_model platform
@@ -160,6 +221,14 @@ jetson_nano)
 
 	;;
 rpi)
+	### install I2C ###
+	if [ $(get_i2c) -ne 0 ]; then
+		# enable i2c interface
+		echo Enable I2C interface ...
+		do_i2c 0
+	fi
+	echo I2C interface enabled...
+
 	## install library raspberry-gpio-python
 	(( r == 0 )) && { apt_install python-rpi.gpio;  r=$?; }
 	(( r == 0 )) && { apt_install python3-rpi.gpio; r=$?; }

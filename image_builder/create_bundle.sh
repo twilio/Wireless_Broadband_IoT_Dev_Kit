@@ -4,8 +4,8 @@
 sudo apt-get install qemu-user-static
 
 # Specific image is recommended as it is known compatible.  Can be set to https://downloads.raspberrypi.org/raspbian_lite_latest for latest after verifying partition arrangement is the same for the below re-sizing.
-DEFAULT_RASPBIAN_URL=https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-04-09/2019-04-08-raspbian-stretch-lite.zip
-DEFAULT_RASPBIAN_IMAGENAME=2019-04-08-raspbian-stretch-lite.zip
+DEFAULT_RASPBIAN_URL=https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-07-12/2019-07-10-raspbian-buster-lite.zip
+DEFAULT_RASPBIAN_IMAGENAME=2019-07-10-raspbian-buster-lite.zip
 
 AZURE_REPO=https://github.com/twilio/azure-iot-sdk-c.git
 AZURE_BRANCH=cryptodev
@@ -19,7 +19,7 @@ TOB_BRANCH=master
 WIRELESS_PPP_REPO=https://github.com/twilio/wireless-ppp-scripts.git
 WIRELESS_PPP_BRANCH=master
 
-REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree"
+REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree"
 
 mount_cleanup () {
  	 # Tear-down qemu chroot env
@@ -226,11 +226,18 @@ sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup scr
 export PATH=${PATH}:${rpi_tools_repo}/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin
 
 echo "Building Azure SDK"
-pushd ${azure_repo}/build_all/linux
-./build.sh --toolchain-file ${tob_repo}/device-support/Seeed-LTE_Cat_1_Pi_HAT/toolchain.cmake --provisioning --no_uploadtoblob --install-path-prefix ${RPI_ROOT}/usr/local || fail "failed to build Azure SDK"
+sudo rsync -axp ${azure_repo}/ ${RPI_ROOT}/home/pi/azure-sdk/
+# Generate setup shell script
+cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+set -e
+cd /home/pi/azure-sdk/build_all/linux
+./build.sh --provisioning --no_uploadtoblob --install-path-prefix /usr/local || fail "failed to build Azure SDK"
 cd ../../cmake/iotsdk_linux
 sudo make install || fail "failed to install Azure SDK"
-popd
+_DONE_
+sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Failed to build Azure SDK"
+sudo rm -rf ${RPI_ROOT}/home/pi/azure-sdk/
 
 echo "Building Trust Onboard SDK"
 pushd ${tob_repo}
@@ -338,6 +345,10 @@ cd grove.py
 mv ../install-alt.sh .
 ./install-alt.sh
 rm install-alt.sh
+# work around issue under python 3.7:
+if [ -d /usr/lib/python3.7 ]; then
+  mv /usr/lib/python3.5/dist-packages/* /usr/lib/python3.7/
+fi
 chown -R pi:pi .
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
