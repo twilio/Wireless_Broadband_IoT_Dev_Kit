@@ -41,6 +41,59 @@ mount_cleanup () {
 	rmdir ${RPI_ROOT}
 }
 
+resize_image() {
+  image=$1
+
+  if [ ! -f "${image}" ]; then
+    fail "Unable to find image to resize"
+  fi
+
+
+  current_size=$(parted ${image} 2>&1 << _DONE_ | grep "^Disk.*s$" | awk '{print $NF}' | sed -e's/s//g'
+unit s
+p
+_DONE_
+)
+
+  if [ ! ${current_size} -gt 1000 ]; then
+    fail "Reading current size likely failed (${current_size})"
+  fi
+
+  if [ ${current_size} -gt 6000000 ]; then
+    echo "Image is likely already expanded, skipping..."
+    return
+  fi
+
+
+  # add 1gb to image
+  dd if=/dev/zero bs=1M count=1000 >> ${image}
+
+  # need to change end for partition 2 to be Disk size - 1
+current_size=$(parted ${FILE} 2>&1 << _DONE_ | grep "^Disk.*s$" | awk '{print $NF}' | sed -e's/s//g'
+unit s
+p
+_DONE_
+)
+  new_size=$((current_size-1))
+
+  parted ${image} << _DONE_
+unit s
+resizepart 2 ${new_size}
+_DONE_
+
+  device=$(sudo losetup --show -f ${image})
+  # -> /dev/loop14
+  if [ -b ${device} ]; then
+    sudo partprobe ${device}
+    sudo e2fsck -f ${device}p2
+    sudo resize2fs ${device}p2
+    sudo e2fsck -f ${device}p2
+    sudo losetup -d ${device}
+  else
+    fail "No block device found from losetup on resize - aborting"
+  fi
+}
+
 mount_sysroot () {
 	mountpoint_boot=$1
 	mountpoint_root=$2
@@ -177,6 +230,7 @@ if [ -z "$wireless_ppp_repo" ]; then
 	wireless_ppp_repo=$(pwd)/tmp/wireless-ppp
 fi
 
+resize_image ${raspbian_image}
 mount_sysroot ${mount_point_boot} ${mount_point_root} ${raspbian_image} || fail "couldn't mount sysroot"
 export RPI_BOOT=${mount_point_boot}
 export RPI_ROOT=${mount_point_root}
@@ -321,7 +375,7 @@ cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
 set -e
 export HOME=/home/pi
 cd home/pi
-apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
+apt-get install -y libboost-all-dev libboost-python-dev python-pip python3-pip
 apt-get autoremove -y
 apt-get clean
 pip install azure-iothub-device-client pyyaml
