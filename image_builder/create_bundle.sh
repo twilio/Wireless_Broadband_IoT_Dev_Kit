@@ -19,7 +19,7 @@ TOB_BRANCH=master
 WIRELESS_PPP_REPO=https://github.com/twilio/wireless-ppp-scripts.git
 WIRELESS_PPP_BRANCH=master
 
-REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree mosquitto-clients libi2c-dev"
+REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree mosquitto-clients libi2c-dev python-paho-mqtt python3-paho-mqtt"
 
 mount_cleanup () {
  	 # Tear-down qemu chroot env
