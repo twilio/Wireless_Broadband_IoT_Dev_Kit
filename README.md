@@ -54,7 +54,7 @@ A quick aside - if you have worked with Raspberry Pi HAT's before, you may have 
 
 ## Installation Options
 
-We have a Raspberry Pi image, based on Raspbian (Stretch) available which includes a fully configured environment, the Breakout Trust Onboard C SDK, and the Azure IoT for C SDK set up as well as ppp and SMS connectivity.  You can [download this image here](https://github.com/twilio/Wireless_Broadband_IoT_Dev_Kit/releases).
+We have a Raspberry Pi image, based on Raspbian (Stretch) available which includes a fully configured environment, the Breakout Trust Onboard C SDK, and the Azure IoT for C SDK set up as well as ppp and SMS connectivity.  You can [download this image here](RELEASES.md).
 
 _We have included the required steps to [replicate the environment yourself](image_builder/README.md).  This is provided for informational purposes only, we encourage you to use the provided pre-built SD card images for the optimal experience with the kit._
 
