@@ -19,7 +19,7 @@ TOB_BRANCH=master
 WIRELESS_PPP_REPO=https://github.com/twilio/wireless-ppp-scripts.git
 WIRELESS_PPP_BRANCH=master
 
-REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree mosquitto-clients libi2c-dev python-paho-mqtt python3-paho-mqtt"
+REQUIRED_PACKAGES="libcurl4-openssl-dev libpcap0.8 libssl1.0-dev ppp uuid-dev cmake cmake-data libarchive13 libjsoncpp1 libuv1 liblzo2-2 smstools procmail screen udhcpd git i2c-tools vim unzip zerofree mosquitto-clients libi2c-dev"
 
 mount_cleanup () {
  	 # Tear-down qemu chroot env
@@ -301,7 +301,7 @@ set -e
 cd home/pi/Breakout_Trust_Onboard_SDK/cloud-support/azure-iot/python_tob_helper/
 mkdir cmake
 cd cmake
-cmake ..
+cmake -DUSE_SIGNING=OFF ..
 make
 make install
 chown -R pi:pi .
@@ -319,6 +319,20 @@ apt-get autoremove -y
 apt-get clean
 pip install azure-iothub-device-client pyyaml
 pip3 install azure-iothub-device-client pyyaml
+_DONE_
+sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
+sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
+
+echo "Installing MQTT Python library for samples"
+cat > ${RPI_ROOT}/tmp/setup.sh << _DONE_
+set -e
+export HOME=/home/pi
+cd home/pi
+apt-get install -y libboost-dev libboost-python-dev python-pip python3-pip
+apt-get autoremove -y
+apt-get clean
+pip install paho-mqtt
+pip3 install paho-mqtt
 _DONE_
 sudo chmod +x ${RPI_ROOT}/tmp/setup.sh || fail "Unable to generate setup script"
 sudo chroot ${RPI_ROOT} /bin/bash /tmp/setup.sh || fail "Unable to run setup script in chroot environment"
