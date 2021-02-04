@@ -1,3 +1,7 @@
+# This is a deprecated repository, please visit [Getting Started with Twilio Broadband IoT Developer Kit](https://www.twilio.com/docs/iot/wireless/get-started-twilio-developer-kit-broadband-iot) for the latest information on using this developer kit.
+
+-----
+
 # Twilio Wireless Broadband IoT Developer Kit
 
 Twilio's Wireless Broadband IoT Developer Kit is a collection of hardware and pre-configured software which enables rapid prototyping on Raspberry Pi.
